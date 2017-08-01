@@ -1,0 +1,3 @@
+
+
+local myButton = display.newImage( "button.png" )
