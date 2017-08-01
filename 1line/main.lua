@@ -1,0 +1,1 @@
+local text = display.newText("\"Hello \n World\" ",375,200,nil,64) -- Escape Sequence/Character. /n = new line

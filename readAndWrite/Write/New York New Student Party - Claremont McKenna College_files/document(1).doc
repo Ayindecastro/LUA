@@ -1,0 +1,427 @@
+
+/**
+* hoverIntent is similar to jQuery's built-in "hover" function except that
+* instead of firing the onMouseOver event immediately, hoverIntent checks
+* to see if the user's mouse has slowed down (beneath the sensitivity
+* threshold) before firing the onMouseOver event.
+* 
+* hoverIntent r5 // 2007.03.27 // jQuery 1.1.2+
+* <http://cherne.net/brian/resources/jquery.hoverIntent.html>
+* 
+* hoverIntent is currently available for use in all personal or commercial 
+* projects under both MIT and GPL licenses. This means that you can choose 
+* the license that best suits your project, and use it accordingly.
+* 
+* // basic usage (just like .hover) receives onMouseOver and onMouseOut functions
+* $("ul li").hoverIntent( showNav , hideNav );
+* 
+* // advanced usage receives configuration object only
+* $("ul li").hoverIntent({
+* sensitivity: 7, // number = sensitivity threshold (must be 1 or higher)
+* interval: 100,   // number = milliseconds of polling interval
+* over: showNav,  // function = onMouseOver callback (required)
+* timeout: 0,   // number = milliseconds delay before onMouseOut function call
+* out: hideNav    // function = onMouseOut callback (required)
+* });
+* 
+* @param  f  onMouseOver function || An object with configuration options
+* @param  g  onMouseOut function  || Nothing (use configuration options object)
+* @author    Brian Cherne <brian(at)cherne(dot)net>
+*/
+(function($) {
+  $.fn.hoverIntent = function(f,g) {
+    // default configuration options
+    var cfg = {
+      sensitivity: 7,
+      interval: 100,
+      timeout: 0
+    };
+    // override configuration options with user supplied object
+    cfg = $.extend(cfg, g ? { over: f, out: g } : f );
+
+    // instantiate variables
+    // cX, cY = current X and Y position of mouse, updated by mousemove event
+    // pX, pY = previous X and Y position of mouse, set by mouseover and polling interval
+    var cX, cY, pX, pY;
+
+    // A private function for getting mouse position
+    var track = function(ev) {
+      cX = ev.pageX;
+      cY = ev.pageY;
+    };
+
+    // A private function for comparing current and previous mouse position
+    var compare = function(ev,ob) {
+      ob.hoverIntent_t = clearTimeout(ob.hoverIntent_t);
+      // compare mouse positions to see if they've crossed the threshold
+      if ( ( Math.abs(pX-cX) + Math.abs(pY-cY) ) < cfg.sensitivity ) {
+        $(ob).unbind("mousemove",track);
+        // set hoverIntent state to true (so mouseOut can be called)
+        ob.hoverIntent_s = 1;
+        return cfg.over.apply(ob,[ev]);
+      } else {
+        // set previous coordinates for next time
+        pX = cX; pY = cY;
+        // use self-calling timeout, guarantees intervals are spaced out properly (avoids JavaScript timer bugs)
+        ob.hoverIntent_t = setTimeout( function(){compare(ev, ob);} , cfg.interval );
+      }
+    };
+
+    // A private function for delaying the mouseOut function
+    var delay = function(ev,ob) {
+      ob.hoverIntent_t = clearTimeout(ob.hoverIntent_t);
+      ob.hoverIntent_s = 0;
+      return cfg.out.apply(ob,[ev]);
+    };
+
+    // A private function for handling mouse 'hovering'
+    var handleHover = function(e) {
+      // next three lines copied from jQuery.hover, ignore children onMouseOver/onMouseOut
+      var p = (e.type == "mouseover" ? e.fromElement : e.toElement) || e.relatedTarget;
+      while ( p && p != this ) { try { p = p.parentNode; } catch(e) { p = this; } }
+      if ( p == this ) { return false; }
+
+      // copy objects to be passed into t (required for event object to be passed in IE)
+      var ev = jQuery.extend({},e);
+      var ob = this;
+
+      // cancel hoverIntent timer if it exists
+      if (ob.hoverIntent_t) { ob.hoverIntent_t = clearTimeout(ob.hoverIntent_t); }
+
+      // else e.type == "onmouseover"
+      if (e.type == "mouseover") {
+        // set "previous" X and Y position based on initial entry point
+        pX = ev.pageX; pY = ev.pageY;
+        // update "current" X and Y position based on mousemove
+        $(ob).bind("mousemove",track);
+        // start polling interval (self-calling timeout) to compare mouse coordinates over time
+        if (ob.hoverIntent_s != 1) { ob.hoverIntent_t = setTimeout( function(){compare(ev,ob);} , cfg.interval );}
+
+      // else e.type == "onmouseout"
+      } else {
+        // unbind expensive mousemove event
+        $(ob).unbind("mousemove",track);
+        // if hoverIntent state is true, then call the mouseOut function after the specified delay
+        if (ob.hoverIntent_s == 1) { ob.hoverIntent_t = setTimeout( function(){delay(ev,ob);} , cfg.timeout );}
+      }
+    };
+
+    // bind the function to the two event listeners
+    return this.mouseover(handleHover).mouseout(handleHover);
+  };
+})(jQuery);
+
+
+/*!
+ * End HoverIntent Plugin
+ */
+
+$(document).ready(function(){
+	
+	/* force reload if scripts are loaded twice */
+	var scriptNo = $('script[src="//online.cmc.edu/netcommunity/document.doc?id=1597"]').length;
+	if( scriptNo > 1 ) { window.location.reload(); }
+	
+	
+  $('#tabs .tab').hide();
+  $('#tabs .tab:first').show();
+  $('#tabs ul li:first').addClass('active');
+  $('#tabs ul li a').click(function(){ 
+  $('#tabs ul li').removeClass('active');
+  $(this).parent().addClass('active'); 
+  var currentTab = $(this).attr('href'); 
+  $('#tabs .tab').hide();
+  $(currentTab).show();
+  return false;
+  });
+
+	// Add Search form elements 
+	$('.nav-search').append('<form class="form-fields panel" id="cse-search-box" action="https://www.google.com/cse" style="display: none;"><fieldset class="fields-search"><input type="hidden" value="008136678178283974701:okq478ehz5q" name="cx"><input type="hidden" value="UTF-8" name="ie"><input type="text" placeholder="Enter keywords..." id="search-terms" class="text" name="q"><input type="submit" class="submit button" value="Search"></fieldset><input name="siteurl" type="hidden" value="online.cmc.edu/"><input name="ref" type="hidden" value=""><input name="ss" type="hidden" value=""></form>');
+ 
+  $('.nav-search').click(function(event){
+    event.stopPropagation(); // Stop propagation of the click outside event
+    $('.open').not($(this)).removeClass("open").find('.panel').hide();
+    $(this).find('.panel').slideToggle().parent().toggleClass("open");
+    return false;
+  });
+  
+  // Display global navigation panels on click
+  var menuObject;
+  $('#shortcuts-nav').click(function(event){
+	  if( $('.open-mobile').length ) {
+	    $(".open").removeClass("open").find('.panel').hide();
+	    $('.open-mobile').slideUp().remove();
+		} else {
+	    event.stopPropagation(); // Stop propagation of the click outside event
+	    $(".open").removeClass("open").find('.panel').hide();
+	    $('.open-mobile').slideUp().remove();
+	    menuObject = $(this);
+	    menuObject.find('.panel').clone().removeClass('panel').addClass('open-mobile').appendTo('.global-nav');
+	  }
+  });
+  // Hide panels when clicking outside or original link
+  $("html").click(function() {
+    $(".open").removeClass("open").find('.panel').hide();
+    $('.open-mobile').slideUp().remove();
+  });
+  // Keep panels open when clicked
+  $(".panel").click(function(event){
+    event.stopPropagation();
+  });
+
+   /*
+  // Add classes for parents with submemus */
+	$('.main-nav > ul > li').each(function() {
+		if( $(this).find('ul').length ) {
+			$(this).addClass('has-submenu');
+		} else { $(this).addClass('no-submenu'); }
+	});
+
+	  
+  // fallback for rounded corners in ie
+  if ($('.ie7').length != 0){
+    $('.ie7 .main-nav ul li a').corner("round 5px");
+    $('.ie7 .button').corner("round 5px");
+    $('.ie7 .btn').corner("round 3px");
+    $('.ie7 .link-support').corner("round 5px");
+  } else if ($('.ie8').length != 0){
+      $('.ie8 .main-nav ul li a').corner("round 5px");
+      $('.ie8 .button').corner("round 5px");
+      $('.ie8 .btn').corner("round 3px");
+      $('.ie8 .link-support').corner("round 3px");
+  } 
+  
+	menuWidth = $(window).width();
+	
+	/*
+	// HANDLES MOBILE MENU EXPANSIONS */
+	function mobileNav() {
+		if(menuWidth <= 750) {
+			$('.main-nav .menu').removeClass('desktop-nav');
+			$('.main-nav .menu').addClass('mobile-nav');
+		}
+		else { 
+			$('.main-nav .menu').addClass('desktop-nav');
+			$('.main-nav .menu').removeClass('mobile-nav');
+			$('.mobile-nav-container').remove();
+			$('.mobilenav-active').removeClass('mobilenav-active');
+		}
+	}
+  mobileNav();
+	
+  /*
+	// Handles mobile submenus */
+	$('.main-nav').on('click touchstart', '.mobile-nav > li:not(.mobile-nav-container)', function() {
+		$('.mobile-nav-container').remove();
+		$('.mobile-nav li').removeClass('mobilenav-active');
+		var navObject = $(this);
+    var navObjectIndex = $( '.main-nav > .menu > li' ).index( navObject );
+		navObject.addClass('mobilenav-active');
+    //if it's on the left-hand side, it needs to append after the next element
+    if (navObjectIndex % 2 === 0) { 
+      var appendAfter = navObject.next();
+    } else { 
+      var appendAfter = navObject;
+    }
+		appendAfter.after('<li class="mobile-nav-container"><div id="mobile-nav-close">x</div><h3></h3></li>');
+		navObject.find('> a').clone().appendTo('.mobile-nav-container h3');
+		navObject.find('.nccUlMenuSub1').clone().removeClass('nccUlMenuSub1').addClass('mobile-nav-panel').css({"opacity": "", "display": ""}).appendTo('.mobile-nav-container');
+		return false;
+	});
+	$('.main-nav').on('click', '#mobile-nav-close', function() {
+		$('.mobile-nav-container').remove();
+		$('.mobile-nav li').removeClass('mobilenav-active');
+	});
+
+
+	var resizeTimer;
+	$(window).on({
+    resize: function () {
+      resizeTimer && clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () {
+        $(window).trigger("delayedResize")
+      }, 250) // .25 second
+    },
+    delayedResize: function () {
+		  menuWidth = $(window).width();  
+			$('.nccUlMenuSub1').css('display','');
+			mobileNav();
+    }
+	});
+
+
+  /*
+	// HANDLES DESKTOP DROPDOWNS */
+  $( '.main-nav > .menu > li' ).hoverIntent(
+    function() {
+      $( this ).find('.nccUlMenuSub1').fadeIn('fast');
+    }, function() {
+      $( this ).find('.nccUlMenuSub1').fadeOut('fast');
+    }
+  );
+  
+   
+   /*
+  // Expand main content height when left-hand 3-column sidebar is longer than content */
+  function columHeightsCMC() {
+    contentHeight = $('.page-content').height();
+    columnHeight = $('.left-column').height();
+    winWidth = $(window).width();
+    if (winWidth > 960) {
+      if ( columnHeight > contentHeight) {
+        $('.page-content').height(columnHeight - 40);
+      }
+    } else {
+      $('.page-content').height('auto');
+    }
+  }
+  columHeightsCMC();
+  $(window).resize(function() {
+    columHeightsCMC();
+  });
+
+   /*
+  // Collapse margins on empty panes */
+  $('.main-content .supplementary .container').each(function() {
+    if ( $(this).is(':empty') ) {
+      $(this).parents('.supplementary').css({'margin':0,'padding':0});
+    }
+  });
+});
+
+/* Uniform Js For Form Styles */
+/*
+$(function(){
+  $("input, textarea, select, button").uniform();
+});
+*/
+
+/* ========== GOOGLE SITE SEARCH =============== */
+(function() {
+var f = document.getElementById('cse-search-box');
+if (!f) {
+f = document.getElementById('searchbox_demo');
+}
+if (f && f['q']) {
+var q = f['q'];
+var n = navigator;
+var l = location;
+var du = function(n, v) {
+var u = document.createElement('input');
+u.name = n;
+u.value = v;
+u.type = 'hidden';
+f.appendChild(u);
+return u;
+};
+var su = function (n, t, v, l) {
+if (!encodeURIComponent || !decodeURIComponent) {
+return;
+}
+var regexp = new RegExp('(?:[?&]' + n + '=)([^&#]*)');
+var existing = regexp.exec(t);
+if (existing) {
+v = decodeURIComponent(existing[1]);
+}
+var delimIndex = v.indexOf('://');
+if (delimIndex >= 0) {
+v = v.substring(delimIndex + '://'.length, v.length);
+}
+var v_sub = v.substring(0, l);
+while (encodeURIComponent(v_sub).length > l) {
+v_sub = v_sub.substring(0, v_sub.length - 1);
+}
+du(n, v_sub);
+};
+var pl = function(he) {
+var ti = 0, tsi = 0, tk = 0, pt;
+return function() {
+var ct = (new Date).getTime();
+if (pt) {
+var i = ct - pt;
+ti += i;
+tsi += i*i;
+}
+tk++;
+pt = ct;
+he.value = [ti, tsi, tk].join('j');
+};
+};
+var append = false;
+if (n.appName == 'Microsoft Internet Explorer') {
+var s = f.parentNode.childNodes;
+for (var i = 0; i < s.length; i++) {
+        if (s[i].nodeName == 'SCRIPT' &&
+            s[i].attributes['src'] &&
+            s[i].attributes['src'].nodeValue == unescape('http:\x2F\x2Fwww.google.com\x2Fcoop\x2Fcse\x2Fbrand?form=cse-search-box\x26lang=en')) {
+          append = true;
+          break;
+        }
+      }
+    } else {
+      append = true;
+    }
+    if (append) {
+      var loc = document.location.toString(); var ref = document.referrer;
+      su('siteurl', loc, loc, 250);
+      su('ref', loc, ref, 750);
+      
+      if (q.addEventListener) {
+        q.addEventListener('keyup', pl(du('ss', '')), false);
+      } else if (q.attachEvent) {
+        q.attachEvent('onkeyup', pl(du('ss', '')));
+      }
+    }
+    if (n.platform == 'Win32') {
+      q.style.cssText = 'border: 1px solid #7e9db9; padding: 2px;';
+    }
+    if (window.history.navigationMode) {
+      window.history.navigationMode = 'compatible';
+    }
+    var b = function() {
+      if (q.value == '') {
+        q.value = 'Search CMC';
+      }
+    };
+    var f = function() {
+      q.style.background = '#ffffff';
+    };
+    q.onfocus = f;
+    q.onblur = b;
+    if (!/[&?]q=[^&]/.test(l.search)) {
+      b();
+    }
+  }
+})();
+
+
+$(window).load(function() {
+   /*
+  // Expand/Collapse Feature
+  // wrap the group in a .expand-set class. Triggers should be h3, followed by a div with collapsed content  */
+  $('.expand-set > div').hide();
+  $('.expand-set h3, .expand-set h4').addClass('closed').css('cursor','pointer').append(' <span class="fa fa-caret-right" />');
+  $('.expand-set h3, .expand-set h4').on('click', function() {
+    if ($(this).hasClass('closed')) {
+      $(this).find('span').removeClass('fa-caret-right').addClass('fa-caret-down');
+      $(this).next('div').slideDown();
+    }else {
+      $(this).find('span').removeClass('fa-caret-down').addClass('fa-caret-right');
+      $(this).next('div').slideUp();
+    }
+    $(this).toggleClass('closed');
+  });
+});
+
+
+/* ========== GOOGLE ANALYTICS =============== */
+var _gaq = _gaq || [];
+_gaq.push(['_setAccount', 'UA-18999737-6']);
+_gaq.push(['_trackPageview']);
+
+(function() {
+  var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+  ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+  var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+})();
+

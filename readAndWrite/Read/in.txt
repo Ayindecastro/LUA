@@ -1,0 +1,6 @@
+chocolate,1.29
+cheese,4.55
+chips,0.99
+cabbage,3.82
+carrot,0.89
+coffee,1.49
